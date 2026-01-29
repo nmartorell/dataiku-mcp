@@ -1,4 +1,6 @@
 import dataiku
+from ..server import mcp
+
 
 @mcp.tool
 def list_project_keys() -> list:

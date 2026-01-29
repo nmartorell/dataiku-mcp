@@ -1,3 +1,3 @@
-import server
+from .server import mcp
 
-import tools.dssclient
+from .tools import dssclient
