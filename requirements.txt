@@ -1,0 +1,5 @@
+fastapi~=0.128
+fastmcp~=2.14
+
+uvicorn_worker~=0.4.0
+gunicorn~=24.1
