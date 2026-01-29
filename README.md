@@ -1,1 +1,1 @@
-# DSS MCP Server
+# Dataiku MCP Server
