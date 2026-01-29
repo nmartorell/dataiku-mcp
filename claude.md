@@ -12,18 +12,24 @@ mcp-dss/
 ├── dssmcp/              # MCP Server Implementation
 │   ├── server.py        # FastMCP server instance
 │   └── tools/           # MCP tool implementations
-│       └── dssclient.py # Dataiku client tools
+│       ├── dssclient.py # Global-level Dataiku client tools
+│       └── dss/         # DSS-specific tools (mirrors dataikuapi/dss structure)
+│           ├── __init__.py
+│           └── project.py  # Project-level tools
 ├── requirements.txt     # Python dependencies
+├── claude.md            # Project documentation
 └── .venv/              # UV virtual environment
 ```
 
 ## Project Status
 
 **Current Implementation:**
-- 23 MCP tools implemented covering core Dataiku operations
-- Tools organized by category: Projects, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
+- 36 MCP tools implemented covering core Dataiku operations
+- **Global-level tools** (23): Projects, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
+- **Project-level tools** (13): Project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
+- Tools organized following dataikuapi package structure for consistency
 - Uses FastMCP framework (v2.14+)
-- Ready for further expansion with project-specific and dataset-level operations
+- Ready for further expansion with dataset-level and recipe-level operations
 
 **Framework:**
 - FastMCP server for exposing tools
@@ -133,9 +139,11 @@ from fastmcp import FastMCP
 mcp = FastMCP("Tools to interact with a Dataiku instance.")
 ```
 
-### Implemented Tools (dssmcp/tools/dssclient.py)
+### Implemented Tools
 
-Currently implements 23 tools organized by category:
+Currently implements 36 tools across 2 modules:
+
+#### Global Tools (dssmcp/tools/dssclient.py) - 23 tools
 
 #### Projects (2 tools)
 - **list_project_keys()** - List all project identifiers
@@ -184,6 +192,27 @@ Currently implements 23 tools organized by category:
 
 #### Data Quality (1 tool)
 - **get_data_quality_status()** - Get data quality monitored project statuses
+
+#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 13 tools
+
+These tools operate on specific projects and follow the structure of dataikuapi/dss/project.py:
+
+##### Project Information (5 tools)
+- **get_project_summary(project_key)** - Get project summary
+- **get_project_metadata(project_key)** - Get project metadata (tags, labels, description)
+- **get_project_permissions(project_key)** - Get project permissions
+- **get_project_interest(project_key)** - Get project interest (stars, watchers)
+- **get_project_timeline(project_key, item_count)** - Get project timeline/history
+
+##### Project Objects (8 tools)
+- **list_project_datasets(project_key, include_shared)** - List datasets in project
+- **list_project_recipes(project_key)** - List recipes in project
+- **list_project_scenarios(project_key)** - List scenarios in project
+- **list_project_jobs(project_key)** - List jobs in project
+- **list_project_ml_tasks(project_key)** - List ML tasks in project
+- **list_project_analyses(project_key)** - List visual analyses in project
+- **list_project_saved_models(project_key)** - List saved models in project
+- **list_project_managed_folders(project_key)** - List managed folders in project
 
 Example tool implementation:
 
@@ -244,37 +273,46 @@ client = dataikuapi.DSSClient(host, api_key)
 
 ### Suggested Next Tools to Implement
 
-Based on common Dataiku operations that require project-specific handles:
+**✅ Completed:** Project-level operations (13 tools in dssmcp/tools/dss/project.py)
 
-**Project-Level Operations (Require DSSProject handle):**
-- `get_project_datasets(project_key)` - List datasets in a project
-- `get_project_recipes(project_key)` - List recipes in a project
-- `get_project_scenarios(project_key)` - List scenarios in a project
-- `get_project_jobs(project_key)` - List jobs in a project
-- `get_project_ml_tasks(project_key)` - List ML tasks in a project
-- `get_project_saved_models(project_key)` - List saved models in a project
+**Next Priority: Dataset Operations (dssmcp/tools/dss/dataset.py)**
 
-**Dataset Operations (Require DSSDataset handle):**
+Based on dataikuapi/dss/dataset.py, implement tools for:
 - `get_dataset_schema(project_key, dataset_name)` - Get dataset schema
 - `get_dataset_metadata(project_key, dataset_name)` - Get dataset metadata
+- `get_dataset_settings(project_key, dataset_name)` - Get dataset settings
+- `get_dataset_last_metric_values(project_key, dataset_name)` - Get dataset metrics
 
-**Scenario/Job Operations (Require DSSScenario/DSSJob handle):**
-- `run_scenario(project_key, scenario_id)` - Execute scenario
-- `get_job_status(job_id)` - Check job status via Future handle
+**Future Expansions:**
 
-**Note:** Many operations require getting handles to specific objects first (e.g., `client.get_project(project_key)`), which return objects rather than dicts. These would need wrapper functions that:
-1. Get the handle
-2. Call methods on the handle
-3. Return the dict/list results
+1. **Recipe Operations (dssmcp/tools/dss/recipe.py)**
+   - `get_recipe_settings(project_key, recipe_name)` - Get recipe settings
+   - `get_recipe_status(project_key, recipe_name)` - Get recipe status
 
-For example:
+2. **Scenario Operations (dssmcp/tools/dss/scenario.py)**
+   - `get_scenario_settings(project_key, scenario_id)` - Get scenario settings
+   - `get_scenario_last_runs(project_key, scenario_id)` - Get recent scenario runs
+   - `run_scenario(project_key, scenario_id)` - Trigger scenario execution
+
+3. **Job Operations (dssmcp/tools/dss/job.py)**
+   - `get_job_status(project_key, job_id)` - Get job status details
+   - `get_job_log(project_key, job_id)` - Get job execution log
+
+4. **Managed Folder Operations (dssmcp/tools/dss/managedfolder.py)**
+   - `list_managed_folder_contents(project_key, folder_id)` - List folder contents
+   - `get_managed_folder_info(project_key, folder_id)` - Get folder info
+
+**Implementation Pattern:**
+
+All tools follow this pattern:
 ```python
 @mcp.tool
-def get_project_datasets(project_key: str) -> list:
+def tool_name(project_key: str, object_name: str) -> dict:
     with dataiku.WebappImpersonationContext() as ctx:
         client = dataiku.api_client()
         project = client.get_project(project_key)
-        return project.list_datasets()
+        object = project.get_object(object_name)
+        return object.get_info()
 ```
 
 ### Error Handling
