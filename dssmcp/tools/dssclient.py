@@ -8,16 +8,16 @@ from ..server import mcp
 
 
 @mcp.tool
-def list_project_keys() -> list:
+def list_project_keys_and_names() -> list:
     """
-    List the project keys (=project identifiers).
+    List the project keys (=project identifiers) and names.
 
-    :returns: list of project keys identifiers, as strings
-    :rtype: list of strings
+    :returns: list of dicts mapping project names to project keys
+    :rtype: list of dicts
     """
     with dataiku.WebappImpersonationContext() as ctx:
         client = dataiku.api_client()
-        return client.list_project_keys()
+        return [{p["name"]: p["projectKey"]} for p in client.list_projects()]
 
 
 @mcp.tool
