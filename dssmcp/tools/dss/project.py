@@ -63,6 +63,55 @@ def delete_project(
     }
 
 
+@mcp.tool
+def duplicate_project(
+    project_key: str,
+    target_project_key: str,
+    target_project_name: str,
+    duplication_mode: str = "MINIMAL",
+    export_analysis_models: bool = True,
+    export_saved_models: bool = True,
+    export_insights_data: bool = True,
+    target_project_folder_id: str = None,
+) -> dict:
+    """
+    Duplicate a project to create a new project with the same content.
+
+    :param str project_key: The project key of the source project to duplicate
+    :param str target_project_key: The key for the new duplicated project (must be unique)
+    :param str target_project_name: The display name for the new duplicated project
+    :param str duplication_mode: Controls what data is copied. One of:
+        - MINIMAL: Only copy project structure, no data
+        - SHARING: Copy structure and set up sharing
+        - FULL: Copy structure and all data
+        - NONE: Copy structure without any special handling
+        (defaults to MINIMAL)
+    :param bool export_analysis_models: Whether to include analysis models (defaults to True)
+    :param bool export_saved_models: Whether to include saved models (defaults to True)
+    :param bool export_insights_data: Whether to include insights data (defaults to True)
+    :param str target_project_folder_id: Optional folder ID for the new project (defaults to same folder as source)
+    :returns: A dict containing the original and duplicated project's keys
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+
+    target_folder = None
+    if target_project_folder_id:
+        target_folder = client.get_project_folder(target_project_folder_id)
+
+    result = project.duplicate(
+        target_project_key=target_project_key,
+        target_project_name=target_project_name,
+        duplication_mode=duplication_mode,
+        export_analysis_models=export_analysis_models,
+        export_saved_models=export_saved_models,
+        export_insights_data=export_insights_data,
+        target_project_folder=target_folder,
+    )
+    return result
+
+
 ########################################################
 # Project Information
 ########################################################
