@@ -24,9 +24,9 @@ mcp-dss/
 ## Project Status
 
 **Current Implementation:**
-- 36 MCP tools implemented covering core Dataiku operations
-- **Global-level tools** (23): Projects, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
-- **Project-level tools** (13): Project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
+- 40 MCP tools implemented covering core Dataiku operations
+- **Global-level tools** (25): Projects, Project Folders, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
+- **Project-level tools** (15): Project lifecycle (move, delete), project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
 - Tools organized following dataikuapi package structure for consistency
 - Uses FastMCP framework (v2.14+)
 - Ready for further expansion with dataset-level and recipe-level operations
@@ -141,61 +141,69 @@ mcp = FastMCP("Tools to interact with a Dataiku instance.")
 
 ### Implemented Tools
 
-Currently implements 36 tools across 2 modules:
+Currently implements 40 tools across 2 modules:
 
-#### Global Tools (dssmcp/tools/dssclient.py) - 23 tools
+#### Global Tools (dssmcp/tools/dssclient.py) - 25 tools
 
-#### Projects (2 tools)
+##### Projects (2 tools)
 - **list_project_keys()** - List all project identifiers
 - **list_projects(include_location)** - List all projects with details
 
-#### Futures / Long-running Tasks (2 tools)
+##### Project Folders (2 tools)
+- **list_project_folders()** - List all project folders in a tree structure
+- **get_project_folder(folder_id)** - Get details of a specific project folder
+
+##### Futures / Long-running Tasks (2 tools)
 - **list_futures(all_users)** - List currently-running long tasks
 - **list_running_scenarios(all_users)** - List running scenarios
 
-#### Notebooks (1 tool)
+##### Notebooks (1 tool)
 - **list_running_notebooks()** - List currently-running Jupyter notebooks
 
-#### Plugins (1 tool)
+##### Plugins (1 tool)
 - **list_plugins()** - List installed plugins
 
-#### Users & Groups (3 tools)
+##### Users & Groups (3 tools)
 - **list_users(include_settings)** - List all users (requires admin rights)
 - **list_groups()** - List all groups (requires admin rights)
 - **get_auth_info(with_secrets)** - Get current authentication info
 
-#### Connections (1 tool)
+##### Connections (1 tool)
 - **list_connections_names(connection_type)** - List connection names
 
-#### Code Environments (2 tools)
+##### Code Environments (2 tools)
 - **list_code_envs()** - List all code environments
 - **list_code_env_usages()** - List all code env usages
 
-#### Clusters (1 tool)
+##### Clusters (1 tool)
 - **list_clusters()** - List all clusters
 
-#### Meanings (1 tool)
+##### Meanings (1 tool)
 - **list_meanings()** - List user-defined meanings
 
-#### Logs (1 tool)
+##### Logs (1 tool)
 - **list_logs()** - List available log files (requires admin rights)
 
-#### Workspaces (1 tool)
+##### Workspaces (1 tool)
 - **list_workspaces()** - List workspaces
 
-#### Data Collections (1 tool)
+##### Data Collections (1 tool)
 - **list_data_collections()** - List accessible data collections
 
-#### Licensing & Status (2 tools)
+##### Licensing & Status (2 tools)
 - **get_licensing_status()** - Get licensing status
 - **get_sanity_check_codes()** - Get sanity check codes (requires admin rights)
 
-#### Data Quality (1 tool)
+##### Data Quality (1 tool)
 - **get_data_quality_status()** - Get data quality monitored project statuses
 
-#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 13 tools
+#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 15 tools
 
 These tools operate on specific projects and follow the structure of dataikuapi/dss/project.py:
+
+##### Project Lifecycle (2 tools)
+- **move_project_to_folder(project_key, destination_folder_id)** - Move a project to a different folder
+- **delete_project(project_key, clear_managed_datasets, clear_output_managed_folders, clear_job_and_scenario_logs)** - Delete a project (requires admin rights)
 
 ##### Project Information (5 tools)
 - **get_project_summary(project_key)** - Get project summary

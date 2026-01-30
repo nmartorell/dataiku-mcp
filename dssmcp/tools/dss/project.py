@@ -2,6 +2,71 @@ import dataiku
 
 from ...server import mcp
 
+
+########################################################
+# Project Lifecycle
+########################################################
+
+
+@mcp.tool
+def move_project_to_folder(project_key: str, destination_folder_id: str) -> dict:
+    """
+    Move a project to a different project folder.
+
+    :param str project_key: The project key of the project to move
+    :param str destination_folder_id: The ID of the destination folder (use 'ROOT' for root folder)
+    :returns: A dict confirming the move with project_key and destination folder info
+    :rtype: dict
+    """
+    with dataiku.WebappImpersonationContext() as ctx:
+        client = dataiku.api_client()
+        project = client.get_project(project_key)
+        destination = client.get_project_folder(destination_folder_id)
+        project.move_to_folder(destination)
+        return {
+            "success": True,
+            "project_key": project_key,
+            "destination_folder_id": destination_folder_id,
+            "destination_folder_path": destination.get_path(),
+        }
+
+
+@mcp.tool
+def delete_project(
+    project_key: str,
+    clear_managed_datasets: bool = False,
+    clear_output_managed_folders: bool = False,
+    clear_job_and_scenario_logs: bool = True,
+) -> dict:
+    """
+    Delete a project from the DSS instance.
+
+    .. attention::
+        This call requires an API key with admin rights.
+
+    :param str project_key: The project key of the project to delete
+    :param bool clear_managed_datasets: Should the data of managed datasets be cleared (defaults to False)
+    :param bool clear_output_managed_folders: Should the data of managed folders used as outputs of recipes be cleared (defaults to False)
+    :param bool clear_job_and_scenario_logs: Should the job and scenario logs be cleared (defaults to True)
+    :returns: A dict with the deletion result
+    :rtype: dict
+    """
+    with dataiku.WebappImpersonationContext() as ctx:
+        client = dataiku.api_client()
+        project = client.get_project(project_key)
+        result = project.delete(
+            clear_managed_datasets=clear_managed_datasets,
+            clear_output_managed_folders=clear_output_managed_folders,
+            clear_job_and_scenario_logs=clear_job_and_scenario_logs,
+            wait=True,
+        )
+        return {
+            "success": True,
+            "project_key": project_key,
+            "messages": result.get_result() if result else None,
+        }
+
+
 ########################################################
 # Project Information
 ########################################################

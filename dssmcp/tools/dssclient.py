@@ -59,6 +59,61 @@ def list_projects(
 
 
 ########################################################
+# Project Folders
+########################################################
+
+
+def _get_folder_tree(client, folder, path=""):
+    """Recursively get folder tree structure."""
+    folder_info = {
+        "id": folder.id,
+        "name": folder.name,
+        "path": path if path else "/",
+        "projectKeys": folder.list_project_keys(),
+        "children": [],
+    }
+    for child in folder.list_child_folders():
+        child_path = f"{path}/{child.name}" if path else f"/{child.name}"
+        folder_info["children"].append(_get_folder_tree(client, child, child_path))
+    return folder_info
+
+
+@mcp.tool
+def list_project_folders() -> dict:
+    """
+    List all project folders in a tree structure starting from the root folder.
+
+    :returns: A dict representing the folder tree with id, name, path, projectKeys, and children
+    :rtype: dict
+    """
+    with dataiku.WebappImpersonationContext() as ctx:
+        client = dataiku.api_client()
+        root = client.get_root_project_folder()
+        return _get_folder_tree(client, root)
+
+
+@mcp.tool
+def get_project_folder(folder_id: str) -> dict:
+    """
+    Get details of a specific project folder.
+
+    :param str folder_id: The ID of the project folder (use 'ROOT' for root folder)
+    :returns: A dict with folder id, name, path, projectKeys, and childrenIds
+    :rtype: dict
+    """
+    with dataiku.WebappImpersonationContext() as ctx:
+        client = dataiku.api_client()
+        folder = client.get_project_folder(folder_id)
+        return {
+            "id": folder.id,
+            "name": folder.name,
+            "path": folder.get_path(),
+            "projectKeys": folder.list_project_keys(),
+            "childrenIds": folder._data.get("childrenIds", []),
+        }
+
+
+########################################################
 # Futures (Long-running tasks)
 ########################################################
 
