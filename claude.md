@@ -24,9 +24,9 @@ mcp-dss/
 ## Project Status
 
 **Current Implementation:**
-- 41 MCP tools implemented covering core Dataiku operations
+- 42 MCP tools implemented covering core Dataiku operations
 - **Global-level tools** (25): Projects, Project Folders, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
-- **Project-level tools** (16): Project lifecycle (move, delete, duplicate), project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
+- **Project-level tools** (17): Project lifecycle (move, delete, duplicate), project information (get/set metadata), datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
 - Tools organized following dataikuapi package structure for consistency
 - Uses FastMCP framework (v2.14+)
 - Ready for further expansion with dataset-level and recipe-level operations
@@ -197,7 +197,7 @@ Currently implements 40 tools across 2 modules:
 ##### Data Quality (1 tool)
 - **get_data_quality_status()** - Get data quality monitored project statuses
 
-#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 16 tools
+#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 17 tools
 
 These tools operate on specific projects and follow the structure of dataikuapi/dss/project.py:
 
@@ -206,9 +206,10 @@ These tools operate on specific projects and follow the structure of dataikuapi/
 - **delete_project(project_key, clear_managed_datasets, clear_output_managed_folders, clear_job_and_scenario_logs)** - Delete a project (requires admin rights)
 - **duplicate_project(project_key, target_project_key, target_project_name, duplication_mode, ...)** - Duplicate a project
 
-##### Project Information (5 tools)
+##### Project Information (6 tools)
 - **get_project_summary(project_key)** - Get project summary
 - **get_project_metadata(project_key)** - Get project metadata (tags, labels, description)
+- **set_project_metadata(project_key, metadata)** - Set project metadata
 - **get_project_permissions(project_key)** - Get project permissions
 - **get_project_interest(project_key)** - Get project interest (stars, watchers)
 - **get_project_timeline(project_key, item_count)** - Get project timeline/history

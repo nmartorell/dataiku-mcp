@@ -152,6 +152,39 @@ def get_project_metadata(project_key: str) -> dict:
 
 
 @mcp.tool
+def set_project_metadata(project_key: str, metadata: dict) -> dict:
+    """
+    Set the metadata on a project. The metadata contains label, description,
+    checklists, tags and custom metadata of the project.
+
+    Usage: First call get_project_metadata to retrieve current metadata,
+    modify the desired fields, then pass the updated dict to this function.
+
+    Example metadata structure:
+    {
+        "label": "Project Display Name",
+        "description": "Project description text",
+        "tags": ["tag1", "tag2"],
+        "checklists": {...},
+        "custom": {...}
+    }
+
+    :param str project_key: the project key of the project to update
+    :param dict metadata: the metadata dict (should be based on output from get_project_metadata)
+    :returns: A dict confirming the update
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    project.set_metadata(metadata)
+    return {
+        "success": True,
+        "project_key": project_key,
+        "message": "Project metadata updated successfully",
+    }
+
+
+@mcp.tool
 def get_project_permissions(project_key: str) -> dict:
     """
     Get the permissions attached to this project
