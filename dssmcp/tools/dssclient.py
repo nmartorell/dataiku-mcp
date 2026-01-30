@@ -1,6 +1,8 @@
 import dataiku
 
 from ..server import mcp
+from ..utils import _get_impersonated_dss_client
+
 
 ########################################################
 # Projects
@@ -236,7 +238,7 @@ def get_auth_info() -> dict:
     :rtype: dict
     """
     with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
+        client = _get_impersonated_dss_client()
         return client.get_auth_info(with_secrets=False)
 
 
