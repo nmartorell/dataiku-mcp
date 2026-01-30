@@ -199,6 +199,46 @@ def get_project_permissions(project_key: str) -> dict:
 
 
 @mcp.tool
+def set_project_permissions(project_key: str, permissions: dict) -> dict:
+    """
+    Set the permissions on a project.
+
+    Usage: First call get_project_permissions to retrieve current permissions,
+    modify the desired fields, then pass the updated dict to this function.
+
+    Example permissions structure:
+    {
+        "owner": "admin",
+        "permissions": [
+            {
+                "group": "data_scientists",
+                "readProjectContent": True,
+                "readDashboards": True
+            },
+            {
+                "group": "analysts",
+                "readProjectContent": True,
+                "writeProjectContent": False
+            }
+        ]
+    }
+
+    :param str project_key: the project key of the project to update
+    :param dict permissions: the permissions dict (should be based on output from get_project_permissions)
+    :returns: A dict confirming the update
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    project.set_permissions(permissions)
+    return {
+        "success": True,
+        "project_key": project_key,
+        "message": "Project permissions updated successfully",
+    }
+
+
+@mcp.tool
 def get_project_interest(project_key: str) -> dict:
     """
     Get the interest of this project. The interest means the number of watchers and the number of stars.
