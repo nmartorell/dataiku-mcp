@@ -21,11 +21,15 @@ def list_project_keys() -> list:
 
 
 @mcp.tool
-def list_projects(include_location: bool = False) -> list:
+def list_projects(
+    include_location: bool = False, include_description: bool = False
+) -> list:
     """
     List the projects
 
     :param bool include_location: whether to include project locations (slower)
+    :param bool include_description: whether to include project descirptions (a lot more tokens, don't
+                                     include unless required)
     :returns: a list of projects, each as a dict. Each dict contains at least a 'projectKey' field
     :rtype: list of dicts
     """
@@ -39,12 +43,13 @@ def list_projects(include_location: bool = False) -> list:
             p_summary = {
                 "name": p.get("name", ""),
                 "projectKey": p["projectKey"],
-                "description": p.get("description", ""),
                 "ownerDisplayName": p.get("ownerDisplayName", ""),
                 "ownerLogin": p.get("ownerLogin", ""),
                 "tutorialProject": p.get("tutorialProject", ""),
                 "tags": p.get("tags", []),
             }
+            if include_description:
+                p_summary["description"] = p.get("description", [])
             if include_location:
                 p_summary["projectLocation"] = p.get("projectLocation", [])
 
