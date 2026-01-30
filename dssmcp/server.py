@@ -1,5 +1,3 @@
-import dataiku
-
 from fastmcp import FastMCP
 
 # Create MCP server
