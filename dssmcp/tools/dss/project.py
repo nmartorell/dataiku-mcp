@@ -1,7 +1,5 @@
-import dataiku
-
 from ...server import mcp
-
+from ...utils import _get_impersonated_dss_client
 
 ########################################################
 # Project Lifecycle
@@ -18,17 +16,16 @@ def move_project_to_folder(project_key: str, destination_folder_id: str) -> dict
     :returns: A dict confirming the move with project_key and destination folder info
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        destination = client.get_project_folder(destination_folder_id)
-        project.move_to_folder(destination)
-        return {
-            "success": True,
-            "project_key": project_key,
-            "destination_folder_id": destination_folder_id,
-            "destination_folder_path": destination.get_path(),
-        }
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    destination = client.get_project_folder(destination_folder_id)
+    project.move_to_folder(destination)
+    return {
+        "success": True,
+        "project_key": project_key,
+        "destination_folder_id": destination_folder_id,
+        "destination_folder_path": destination.get_path(),
+    }
 
 
 @mcp.tool
@@ -51,20 +48,19 @@ def delete_project(
     :returns: A dict with the deletion result
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        result = project.delete(
-            clear_managed_datasets=clear_managed_datasets,
-            clear_output_managed_folders=clear_output_managed_folders,
-            clear_job_and_scenario_logs=clear_job_and_scenario_logs,
-            wait=True,
-        )
-        return {
-            "success": True,
-            "project_key": project_key,
-            "messages": result.get_result() if result else None,
-        }
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    result = project.delete(
+        clear_managed_datasets=clear_managed_datasets,
+        clear_output_managed_folders=clear_output_managed_folders,
+        clear_job_and_scenario_logs=clear_job_and_scenario_logs,
+        wait=True,
+    )
+    return {
+        "success": True,
+        "project_key": project_key,
+        "messages": result.get_result() if result else None,
+    }
 
 
 ########################################################
@@ -83,10 +79,9 @@ def get_project_summary(project_key: str) -> dict:
     :returns: a dict containing a summary of the project. Each dict contains at least a **projectKey** field
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.get_summary()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.get_summary()
 
 
 @mcp.tool
@@ -102,10 +97,9 @@ def get_project_metadata(project_key: str) -> dict:
     :returns: the project metadata.
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.get_metadata()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.get_metadata()
 
 
 @mcp.tool
@@ -117,10 +111,9 @@ def get_project_permissions(project_key: str) -> dict:
     :returns: A dict containing the owner and the permissions, as a list of pairs of group name and permission type
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.get_permissions()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.get_permissions()
 
 
 @mcp.tool
@@ -136,10 +129,9 @@ def get_project_interest(project_key: str) -> dict:
 
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.get_interest()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.get_interest()
 
 
 @mcp.tool
@@ -164,10 +156,9 @@ def get_project_timeline(project_key: str, item_count: int = 100) -> dict:
 
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.get_timeline(item_count=item_count)
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.get_timeline(item_count=item_count)
 
 
 ########################################################
@@ -185,29 +176,28 @@ def list_project_datasets(project_key: str, include_shared: bool = False) -> lis
     :returns: The list of the datasets as dicts
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        datasets = project.list_datasets(
-            as_type="listitems", include_shared=include_shared
-        )
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    datasets = project.list_datasets(
+        as_type="listitems", include_shared=include_shared
+    )
 
-        # remove unnecessary fields from project list that bloat LLM context window
-        datasets_summary = []
-        for ds in datasets:
-            datasets_summary.append(
-                {
-                    "type": ds.get("type", ""),
-                    "managed": ds["managed"],
-                    "name": ds.get("name", ""),
-                    "smartName": ds.get("smartName", ""),
-                    "formatType": ds.get("formatType", ""),
-                    "projectKey": ds.get("projectKey", ""),
-                    "tags": ds.get("tags", []),
-                    "schema": ds.get("schema", {}),
-                }
-            )
-        return datasets_summary
+    # remove unnecessary fields from project list that bloat LLM context window
+    datasets_summary = []
+    for ds in datasets:
+        datasets_summary.append(
+            {
+                "type": ds.get("type", ""),
+                "managed": ds["managed"],
+                "name": ds.get("name", ""),
+                "smartName": ds.get("smartName", ""),
+                "formatType": ds.get("formatType", ""),
+                "projectKey": ds.get("projectKey", ""),
+                "tags": ds.get("tags", []),
+                "schema": ds.get("schema", {}),
+            }
+        )
+    return datasets_summary
 
 
 ########################################################
@@ -224,25 +214,24 @@ def list_project_recipes(project_key: str) -> list:
     :returns: The list of the recipes as dicts
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        recipes = project.list_recipes()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    recipes = project.list_recipes()
 
-        # remove unnecessary fields from project list that bloat LLM context window
-        recipes_summary = []
-        for r in recipes:
-            recipes_summary.append(
-                {
-                    "type": r.get("type", ""),
-                    "name": r.get("name", ""),
-                    "projectKey": r.get("projectKey", ""),
-                    "inputs": r.get("inputs", {}),
-                    "outputs": r.get("outputs", {}),
-                    "tags": r.get("tags", []),
-                }
-            )
-        return recipes_summary
+    # remove unnecessary fields from project list that bloat LLM context window
+    recipes_summary = []
+    for r in recipes:
+        recipes_summary.append(
+            {
+                "type": r.get("type", ""),
+                "name": r.get("name", ""),
+                "projectKey": r.get("projectKey", ""),
+                "inputs": r.get("inputs", {}),
+                "outputs": r.get("outputs", {}),
+                "tags": r.get("tags", []),
+            }
+        )
+    return recipes_summary
 
 
 ########################################################
@@ -259,10 +248,9 @@ def list_project_scenarios(project_key: str) -> list:
     :returns: The list of the scenarios as dicts
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.list_scenarios()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.list_scenarios()
 
 
 ########################################################
@@ -280,10 +268,9 @@ def list_project_jobs(project_key: str, num_jobs: int = 10) -> list:
     :returns: a list of the jobs, each one as a python dict, containing both the definition and the state
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.list_jobs()[0:num_jobs]
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.list_jobs()[0:num_jobs]
 
 
 ########################################################
@@ -301,10 +288,9 @@ def list_project_ml_tasks(project_key: str, num_ml_tasks: int = 10) -> list:
     :returns: the list of the ML tasks summaries, each one as a python dict
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.list_ml_tasks()[0:num_ml_tasks]
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.list_ml_tasks()[0:num_ml_tasks]
 
 
 @mcp.tool
@@ -317,10 +303,9 @@ def list_project_analyses(project_key: str, num_analyses: int = 10) -> list:
     :returns: the list of the visual analyses summaries, each one as a python dict
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.list_analyses()[0:num_analyses]
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.list_analyses()[0:num_analyses]
 
 
 ########################################################
@@ -337,10 +322,9 @@ def list_project_saved_models(project_key: str) -> list:
     :returns: the list of the saved models, each one as a python dict
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        return project.list_saved_models()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    return project.list_saved_models()
 
 
 ########################################################
@@ -357,22 +341,21 @@ def list_project_managed_folders(project_key: str) -> list:
     :returns: the list of the managed folders, each one as a python dict
     :rtype: list
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project = client.get_project(project_key)
-        managed_folders = project.list_managed_folders()
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    managed_folders = project.list_managed_folders()
 
-        # remove unnecessary fields from project list that bloat LLM context window
-        managed_folders_summary = []
-        for mf in managed_folders:
-            managed_folders_summary.append(
-                {
-                    "id": mf.get("id", ""),
-                    "type": mf.get("type", ""),
-                    "name": mf.get("name", ""),
-                    "projectKey": mf.get("projectKey", ""),
-                    "tags": mf.get("tags", []),
-                    "params": mf.get("params", {}),
-                }
-            )
-        return managed_folders_summary
+    # remove unnecessary fields from project list that bloat LLM context window
+    managed_folders_summary = []
+    for mf in managed_folders:
+        managed_folders_summary.append(
+            {
+                "id": mf.get("id", ""),
+                "type": mf.get("type", ""),
+                "name": mf.get("name", ""),
+                "projectKey": mf.get("projectKey", ""),
+                "tags": mf.get("tags", []),
+                "params": mf.get("params", {}),
+            }
+        )
+    return managed_folders_summary

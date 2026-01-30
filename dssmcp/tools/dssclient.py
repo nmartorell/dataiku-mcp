@@ -1,5 +1,3 @@
-import dataiku
-
 from ..server import mcp
 from ..utils import _get_impersonated_dss_client
 
@@ -17,9 +15,8 @@ def list_project_keys_and_names() -> list:
     :returns: list of dicts mapping project names to project keys
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return [{p["name"]: p["projectKey"]} for p in client.list_projects()]
+    client = _get_impersonated_dss_client()
+    return [{p["name"]: p["projectKey"]} for p in client.list_projects()]
 
 
 @mcp.tool
@@ -35,29 +32,28 @@ def list_projects(
     :returns: a list of projects, each as a dict. Each dict contains at least a 'projectKey' field
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        project_list = client.list_projects(include_location=include_location)
+    client = _get_impersonated_dss_client()
+    project_list = client.list_projects(include_location=include_location)
 
-        # remove unnecessary fields from project list that bloat LLM context window
-        project_list_summary = []
-        for p in project_list:
-            p_summary = {
-                "name": p.get("name", ""),
-                "projectKey": p["projectKey"],
-                "ownerDisplayName": p.get("ownerDisplayName", ""),
-                "ownerLogin": p.get("ownerLogin", ""),
-                "tutorialProject": p.get("tutorialProject", ""),
-                "tags": p.get("tags", []),
-            }
-            if include_description:
-                p_summary["description"] = p.get("description", [])
-            if include_location:
-                p_summary["projectLocation"] = p.get("projectLocation", [])
+    # remove unnecessary fields from project list that bloat LLM context window
+    project_list_summary = []
+    for p in project_list:
+        p_summary = {
+            "name": p.get("name", ""),
+            "projectKey": p["projectKey"],
+            "ownerDisplayName": p.get("ownerDisplayName", ""),
+            "ownerLogin": p.get("ownerLogin", ""),
+            "tutorialProject": p.get("tutorialProject", ""),
+            "tags": p.get("tags", []),
+        }
+        if include_description:
+            p_summary["description"] = p.get("description", [])
+        if include_location:
+            p_summary["projectLocation"] = p.get("projectLocation", [])
 
-            project_list_summary.append(p_summary)
+        project_list_summary.append(p_summary)
 
-        return project_list_summary
+    return project_list_summary
 
 
 ########################################################
@@ -88,10 +84,9 @@ def list_project_folders() -> dict:
     :returns: A dict representing the folder tree with id, name, path, projectKeys, and children
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        root = client.get_root_project_folder()
-        return _get_folder_tree(client, root)
+    client = _get_impersonated_dss_client()
+    root = client.get_root_project_folder()
+    return _get_folder_tree(client, root)
 
 
 @mcp.tool
@@ -103,16 +98,15 @@ def get_project_folder(folder_id: str) -> dict:
     :returns: A dict with folder id, name, path, projectKeys, and childrenIds
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        folder = client.get_project_folder(folder_id)
-        return {
-            "id": folder.id,
-            "name": folder.name,
-            "path": folder.get_path(),
-            "projectKeys": folder.list_project_keys(),
-            "childrenIds": folder._data.get("childrenIds", []),
-        }
+    client = _get_impersonated_dss_client()
+    folder = client.get_project_folder(folder_id)
+    return {
+        "id": folder.id,
+        "name": folder.name,
+        "path": folder.get_path(),
+        "projectKeys": folder.list_project_keys(),
+        "childrenIds": folder._data.get("childrenIds", []),
+    }
 
 
 ########################################################
@@ -130,9 +124,8 @@ def list_futures(all_users: bool = False) -> list:
     :return: list of futures. Each future in the list is a dict. Each dict contains at least a 'jobId' field
     :rtype: list of dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_futures(as_objects=False, all_users=all_users)
+    client = _get_impersonated_dss_client()
+    return client.list_futures(as_objects=False, all_users=all_users)
 
 
 @mcp.tool
@@ -146,9 +139,8 @@ def list_running_scenarios(all_users: bool = False) -> list:
         future hosting the scenario run, and a "payload" field with scenario identifiers
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_running_scenarios(all_users=all_users)
+    client = _get_impersonated_dss_client()
+    return client.list_running_scenarios(all_users=all_users)
 
 
 ########################################################
@@ -164,9 +156,8 @@ def list_running_notebooks() -> list:
     :return: list of notebooks. Each item in the list is a dict which contains at least a "name" field.
     :rtype: list of dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_running_notebooks(as_objects=False)
+    client = _get_impersonated_dss_client()
+    return client.list_running_notebooks(as_objects=False)
 
 
 ########################################################
@@ -181,9 +172,8 @@ def list_plugins() -> list:
 
     :returns: list of dict. Each dict contains at least a 'id' field
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_plugins()
+    client = _get_impersonated_dss_client()
+    return client.list_plugins()
 
 
 ########################################################
@@ -203,9 +193,8 @@ def list_users(include_settings: bool = False) -> list:
     :return: A list of users, as a list of dicts
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_users(as_objects=False, include_settings=include_settings)
+    client = _get_impersonated_dss_client()
+    return client.list_users(as_objects=False, include_settings=include_settings)
 
 
 @mcp.tool
@@ -218,9 +207,8 @@ def list_groups() -> list:
     :returns: A list of groups, as an list of dicts
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_groups()
+    client = _get_impersonated_dss_client()
+    return client.list_groups()
 
 
 @mcp.tool
@@ -237,9 +225,8 @@ def get_auth_info() -> dict:
     :returns: a dict
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = _get_impersonated_dss_client()
-        return client.get_auth_info(with_secrets=False)
+    client = _get_impersonated_dss_client()
+    return client.get_auth_info(with_secrets=False)
 
 
 ########################################################
@@ -258,9 +245,8 @@ def list_connections_names(connection_type: str) -> list:
     :return: the list of connections names
     :rtype: List[str]
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_connections_names(connection_type=connection_type)
+    client = _get_impersonated_dss_client()
+    return client.list_connections_names(connection_type=connection_type)
 
 
 ########################################################
@@ -275,22 +261,21 @@ def list_code_envs() -> list:
 
     :returns: a list of code envs. Each code env is a dict containing at least "name", "type" and "language"
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        code_envs = client.list_code_envs(as_objects=False)
+    client = _get_impersonated_dss_client()
+    code_envs = client.list_code_envs(as_objects=False)
 
-        # remove unnecessary fields from project list that bloat LLM context window
-        code_envs_summary = []
-        for env in code_envs:
-            code_envs_summary.append(
-                {
-                    "envName": env.get("envName", ""),
-                    "envLang": env["envLang"],
-                    "owner": env.get("owner", ""),
-                    "pythonInterpreter": env.get("pythonInterpreter", ""),
-                }
-            )
-        return code_envs_summary
+    # remove unnecessary fields from project list that bloat LLM context window
+    code_envs_summary = []
+    for env in code_envs:
+        code_envs_summary.append(
+            {
+                "envName": env.get("envName", ""),
+                "envLang": env["envLang"],
+                "owner": env.get("owner", ""),
+                "pythonInterpreter": env.get("pythonInterpreter", ""),
+            }
+        )
+    return code_envs_summary
 
 
 @mcp.tool
@@ -301,9 +286,8 @@ def list_code_env_usages() -> list:
 
     :return: a list of objects where the code env is used
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_code_env_usages()
+    client = _get_impersonated_dss_client()
+    return client.list_code_env_usages()
 
 
 ########################################################
@@ -319,9 +303,8 @@ def list_clusters() -> list:
     Returns:
         List clusters (name, type, state)
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_clusters()
+    client = _get_impersonated_dss_client()
+    return client.list_clusters()
 
 
 ########################################################
@@ -337,9 +320,8 @@ def list_meanings() -> list:
     :returns: A list of meanings. Each meaning is a dict
     :rtype: list of dicts
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_meanings()
+    client = _get_impersonated_dss_client()
+    return client.list_meanings()
 
 
 ########################################################
@@ -356,9 +338,8 @@ def list_logs() -> list:
 
     :returns: A list of log file names
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_logs()
+    client = _get_impersonated_dss_client()
+    return client.list_logs()
 
 
 ########################################################
@@ -373,9 +354,8 @@ def list_workspaces() -> list:
 
     :returns: The list of workspaces.
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_workspaces(as_objects=False)
+    client = _get_impersonated_dss_client()
+    return client.list_workspaces(as_objects=False)
 
 
 ########################################################
@@ -391,9 +371,8 @@ def list_data_collections() -> list:
     :returns: The list of data collections as a list of dicts
     :rtype: a list of dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.list_data_collections(as_type="dict")
+    client = _get_impersonated_dss_client()
+    return client.list_data_collections(as_type="dict")
 
 
 ########################################################
@@ -409,9 +388,8 @@ def get_licensing_status() -> dict:
 
     :rtype: dict
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.get_licensing_status()
+    client = _get_impersonated_dss_client()
+    return client.get_licensing_status()
 
 
 @mcp.tool
@@ -422,9 +400,8 @@ def get_sanity_check_codes() -> list:
 
     :rtype: list[str]
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.get_sanity_check_codes()
+    client = _get_impersonated_dss_client()
+    return client.get_sanity_check_codes()
 
 
 ########################################################
@@ -440,6 +417,5 @@ def get_data_quality_status() -> dict:
     :returns: The dict of data quality monitored project statuses.
     :rtype: dict with PROJECT_KEY as key
     """
-    with dataiku.WebappImpersonationContext() as ctx:
-        client = dataiku.api_client()
-        return client.get_data_quality_status()
+    client = _get_impersonated_dss_client()
+    return client.get_data_quality_status()
