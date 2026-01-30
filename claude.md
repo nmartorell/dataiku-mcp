@@ -24,9 +24,9 @@ mcp-dss/
 ## Project Status
 
 **Current Implementation:**
-- 40 MCP tools implemented covering core Dataiku operations
+- 41 MCP tools implemented covering core Dataiku operations
 - **Global-level tools** (25): Projects, Project Folders, Futures, Notebooks, Plugins, Users/Groups, Connections, Code Envs, Clusters, Meanings, Logs, Workspaces, Data Collections, Licensing, and Data Quality
-- **Project-level tools** (15): Project lifecycle (move, delete), project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
+- **Project-level tools** (16): Project lifecycle (move, delete, duplicate), project information, datasets, recipes, scenarios, jobs, ML tasks, analyses, saved models, and managed folders
 - Tools organized following dataikuapi package structure for consistency
 - Uses FastMCP framework (v2.14+)
 - Ready for further expansion with dataset-level and recipe-level operations
@@ -197,13 +197,14 @@ Currently implements 40 tools across 2 modules:
 ##### Data Quality (1 tool)
 - **get_data_quality_status()** - Get data quality monitored project statuses
 
-#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 15 tools
+#### Project-Specific Tools (dssmcp/tools/dss/project.py) - 16 tools
 
 These tools operate on specific projects and follow the structure of dataikuapi/dss/project.py:
 
-##### Project Lifecycle (2 tools)
+##### Project Lifecycle (3 tools)
 - **move_project_to_folder(project_key, destination_folder_id)** - Move a project to a different folder
 - **delete_project(project_key, clear_managed_datasets, clear_output_managed_folders, clear_job_and_scenario_logs)** - Delete a project (requires admin rights)
+- **duplicate_project(project_key, target_project_key, target_project_name, duplication_mode, ...)** - Duplicate a project
 
 ##### Project Information (5 tools)
 - **get_project_summary(project_key)** - Get project summary
