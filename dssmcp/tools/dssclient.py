@@ -1,10 +1,11 @@
 import dataiku
-from ..server import mcp
 
+from ..server import mcp
 
 ########################################################
 # Projects
 ########################################################
+
 
 @mcp.tool
 def list_project_keys() -> list:
@@ -30,12 +31,32 @@ def list_projects(include_location: bool = False) -> list:
     """
     with dataiku.WebappImpersonationContext() as ctx:
         client = dataiku.api_client()
-        return client.list_projects(include_location=include_location)
+        project_list = client.list_projects(include_location=include_location)
+
+        # remove unnecessary fields from project list that bloat LLM context window
+        project_list_summary = []
+        for p in project_list:
+            p_summary = {
+                "name": p.get("name", ""),
+                "projectKey": p["projectKey"],
+                "description": p.get("description", ""),
+                "ownerDisplayName": p.get("ownerDisplayName", ""),
+                "ownerLogin": p.get("ownerLogin", ""),
+                "tutorialProject": p.get("tutorialProject", ""),
+                "tags": p.get("tags", []),
+            }
+            if include_location:
+                p_summary["projectLocation"] = p.get("projectLocation", [])
+
+            project_list_summary.append(p_summary)
+
+        return project_list_summary
 
 
 ########################################################
 # Futures (Long-running tasks)
 ########################################################
+
 
 @mcp.tool
 def list_futures(all_users: bool = False) -> list:
@@ -72,6 +93,7 @@ def list_running_scenarios(all_users: bool = False) -> list:
 # Notebooks
 ########################################################
 
+
 @mcp.tool
 def list_running_notebooks() -> list:
     """
@@ -89,6 +111,7 @@ def list_running_notebooks() -> list:
 # Plugins
 ########################################################
 
+
 @mcp.tool
 def list_plugins() -> list:
     """
@@ -104,6 +127,7 @@ def list_plugins() -> list:
 ########################################################
 # Users & Groups
 ########################################################
+
 
 @mcp.tool
 def list_users(include_settings: bool = False) -> list:
@@ -138,7 +162,7 @@ def list_groups() -> list:
 
 
 @mcp.tool
-def get_auth_info(with_secrets: bool = False) -> dict:
+def get_auth_info() -> dict:
     """
     Returns various information about the user currently authenticated using
     this instance of the API client.
@@ -147,20 +171,19 @@ def get_auth_info(with_secrets: bool = False) -> dict:
 
     * authIdentifier: login for a user, id for an API key
     * groups: list of group names (if  context is an user)
-    * secrets: list of dicts containing user secrets (if context is an user)
 
-    :param: with_secrets boolean: Return user secrets
     :returns: a dict
     :rtype: dict
     """
     with dataiku.WebappImpersonationContext() as ctx:
         client = dataiku.api_client()
-        return client.get_auth_info(with_secrets=with_secrets)
+        return client.get_auth_info(with_secrets=False)
 
 
 ########################################################
 # Connections
 ########################################################
+
 
 @mcp.tool
 def list_connections_names(connection_type: str) -> list:
@@ -168,6 +191,7 @@ def list_connections_names(connection_type: str) -> list:
     List all connections names on the DSS instance.
 
     :param str connection_type: Returns only connections with this type. Use 'all' if you don't want to filter.
+    Note: use 'EC2' for S3 connections.
 
     :return: the list of connections names
     :rtype: List[str]
@@ -181,6 +205,7 @@ def list_connections_names(connection_type: str) -> list:
 # Code envs
 ########################################################
 
+
 @mcp.tool
 def list_code_envs() -> list:
     """
@@ -190,13 +215,27 @@ def list_code_envs() -> list:
     """
     with dataiku.WebappImpersonationContext() as ctx:
         client = dataiku.api_client()
-        return client.list_code_envs(as_objects=False)
+        code_envs = client.list_code_envs(as_objects=False)
+
+        # remove unnecessary fields from project list that bloat LLM context window
+        code_envs_summary = []
+        for env in code_envs:
+            code_envs_summary.append(
+                {
+                    "envName": env.get("envName", ""),
+                    "envLang": env["envLang"],
+                    "owner": env.get("owner", ""),
+                    "pythonInterpreter": env.get("pythonInterpreter", ""),
+                }
+            )
+        return code_envs_summary
 
 
 @mcp.tool
 def list_code_env_usages() -> list:
     """
-    List all usages of a code env in the instance
+    List all usages of a code env in the instance.
+    This tool returns a large json, use with caution.
 
     :return: a list of objects where the code env is used
     """
@@ -208,6 +247,7 @@ def list_code_env_usages() -> list:
 ########################################################
 # Clusters
 ########################################################
+
 
 @mcp.tool
 def list_clusters() -> list:
@@ -226,6 +266,7 @@ def list_clusters() -> list:
 # Meanings
 ########################################################
 
+
 @mcp.tool
 def list_meanings() -> list:
     """
@@ -243,7 +284,9 @@ def list_meanings() -> list:
 # Logs
 ########################################################
 
-@mcp.tool
+
+# TODO: should this tool be removed?
+# @mcp.tool
 def list_logs() -> list:
     """
     List all available log files on the DSS instance
@@ -260,6 +303,7 @@ def list_logs() -> list:
 # Workspaces
 ########################################################
 
+
 @mcp.tool
 def list_workspaces() -> list:
     """
@@ -275,6 +319,7 @@ def list_workspaces() -> list:
 ########################################################
 # Data Collections
 ########################################################
+
 
 @mcp.tool
 def list_data_collections() -> list:
@@ -293,10 +338,12 @@ def list_data_collections() -> list:
 # Licensing & Status
 ########################################################
 
+
 @mcp.tool
 def get_licensing_status() -> dict:
     """
-    Returns a dictionary with information about licensing status of this DSS instance
+    Returns a dictionary with information about licensing status of this DSS instance.
+    This call requires an API key with admin rights.
 
     :rtype: dict
     """
@@ -309,7 +356,6 @@ def get_licensing_status() -> dict:
 def get_sanity_check_codes() -> list:
     """
     Return the list of codes that can be generated by the sanity check.
-
     This call requires an API key with admin rights.
 
     :rtype: list[str]
@@ -322,6 +368,7 @@ def get_sanity_check_codes() -> list:
 ########################################################
 # Data Quality
 ########################################################
+
 
 @mcp.tool
 def get_data_quality_status() -> dict:
