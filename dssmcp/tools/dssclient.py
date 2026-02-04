@@ -1,6 +1,7 @@
+from dataikuapi.utils import DataikuException
+
 from ..server import mcp
 from ..utils import _get_impersonated_dss_client
-
 
 ########################################################
 # Projects
@@ -181,6 +182,27 @@ def list_plugins() -> list:
 ########################################################
 
 
+def _is_user_an_admin() -> bool:
+    """
+    Determines if the calling user is a Dataiku admin.
+
+    Call this tool to before calling any admin-only tools, assuming you don't know
+    if the calling user is an admin.
+
+    :return: A boolean which determines if the calling user is an admin.
+    :rtype: bool
+    """
+
+    client = _get_impersonated_dss_client()
+    try:
+        client.list_connections()  # throws exception of not admin
+        is_admin = True
+    except DataikuException:
+        is_admin = False
+
+    return is_admin
+
+
 @mcp.tool
 def list_users(include_settings: bool = False) -> list:
     """
@@ -215,7 +237,7 @@ def list_groups() -> list:
 def get_auth_info() -> dict:
     """
     Returns various information about the user currently authenticated using
-    this instance of the API client.
+    this instance of the API client. Includes if the user is a Dataiku admin.
 
     This method returns a dict that may contain the following keys (may also contain others):
 
@@ -226,7 +248,10 @@ def get_auth_info() -> dict:
     :rtype: dict
     """
     client = _get_impersonated_dss_client()
-    return client.get_auth_info(with_secrets=False)
+    user_auth_info = client.get_auth_info(with_secrets=False)
+    user_auth_info["isAdmin"] = _is_user_an_admin()
+
+    return user_auth_info
 
 
 ########################################################
