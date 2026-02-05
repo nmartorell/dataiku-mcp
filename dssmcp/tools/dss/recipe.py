@@ -305,8 +305,8 @@ def set_visual_recipe_payload(
     :returns: A dict confirming the update, with optional schema update info
     :rtype: dict
 
-    :note:: when modifyiong preapre recipes, pay close attention to the json payload being
-    generated. When possible, use formula steps, and don't overuse strval and numval.
+    :note:: when modifyiong prepare recipes, pay close attention to the json payload being
+    generated. When possible, use formula steps, and don't use strval and numval in formulas.
     """
     client = _get_impersonated_dss_client()
     project = client.get_project(project_key)
