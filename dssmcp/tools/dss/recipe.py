@@ -106,6 +106,12 @@ def create_recipe(
     Create a new recipe in a project's flow with specified inputs and outputs.
     Inputs and outputs must exist prior to creating the recipe (use create_managed_dataset tool).
 
+    One the recipe is created and built, use ``get_recipe_settings`` to get the recipe payload (or
+    code, in the case of code recipes). Then you can modify it, and save it back to the recipe
+    with ``set_code_recipe_code`` or ``set_visual_recipe_payload``.
+
+    Finally, the recipe can be run with ``run_recipe``.
+
     Valid recipe types:
 
     - **Single-input visual** (exactly 1 input, 1 output): sync, csync, sort, topn, distinct,

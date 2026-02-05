@@ -21,8 +21,8 @@ def create_managed_dataset(
     A managed dataset is one whose data lifecycle is handled by DSS (as opposed to external
     datasets that point to pre-existing data).
 
-    If you don't know the connection name, call ``list_project_datasets`` on an existing project
-    and look at the ``connection`` fields to find a list of potential connection names.
+    If you don't know the connection name, call ``list_connections_names`` and ask the user which
+    connection they want to use.
 
     :param str project_key: The project key in which to create the dataset
     :param str dataset_name: The name for the new dataset

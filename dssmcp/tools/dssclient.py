@@ -333,7 +333,6 @@ def list_connections_names(connection_type: str) -> list:
     List all connections names on the DSS instance.
 
     :param str connection_type: Returns only connections with this type. Use 'all' if you don't want to filter.
-    Note: use 'EC2' for S3 connections.
 
     :return: the list of connections names
     :rtype: List[str]
