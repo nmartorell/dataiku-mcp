@@ -129,9 +129,6 @@ def create_recipe(
     :returns: A dict with the created recipe's name, type, inputs, and outputs
     :rtype: dict
     """
-    # Validate if datasets already exist in the flow
-    # TODO (by Claude).
-
     # Validate recipe type
     if recipe_type not in ALL_RECIPE_TYPES:
         return {
@@ -161,9 +158,25 @@ def create_recipe(
 
     client = _get_impersonated_dss_client()
     project = client.get_project(project_key)
+
+    # Validate that all referenced datasets already exist in the flow
+    existing_datasets = {ds["name"] for ds in project.list_datasets()}
+    missing_inputs = [name for name in inputs if name not in existing_datasets]
+    if missing_inputs:
+        return {
+            "error": f"Input dataset(s) not found in project '{project_key}': {missing_inputs}. "
+            f"Create them first with create_managed_dataset."
+        }
+    missing_outputs = [o["name"] for o in outputs if o["name"] not in existing_datasets]
+    if missing_outputs:
+        return {
+            "error": f"Output dataset(s) not found in project '{project_key}': {missing_outputs}. "
+            f"Create them first with create_managed_dataset."
+        }
+
+    # Build recipe
     builder = project.new_recipe(recipe_type, name=recipe_name)
 
-    # Add inputs
     for inp in inputs:
         builder.with_input(inp)
 
