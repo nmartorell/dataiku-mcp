@@ -6,3 +6,8 @@ gunicorn~=24.1
 
 dataiku-api-client==14.3.2
 https://dss.nedmartorell.fe-aws.dkucloud-dev.com/public/packages/dataiku-internal-client.tar.gz
+
+pandas>=2.3,<2.4
+numpy<2.4
+python-dateutil >=2.8.2,<3
+requests<3
