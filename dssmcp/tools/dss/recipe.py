@@ -104,7 +104,7 @@ def create_recipe(
 ) -> dict:
     """
     Create a new recipe in a project's flow with specified inputs and outputs.
-    Inputs and outputs must exist prior to creating the recipe.
+    Inputs and outputs must exist prior to creating the recipe (use create_managed_dataset tool).
 
     Valid recipe types:
 

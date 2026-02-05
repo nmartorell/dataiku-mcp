@@ -21,8 +21,8 @@ def create_managed_dataset(
     A managed dataset is one whose data lifecycle is handled by DSS (as opposed to external
     datasets that point to pre-existing data).
 
-    If you don't know the connection name, call ``get_dataset_settings`` on an existing dataset
-    in the project and look at the ``params.connection`` field to find a valid connection name.
+    If you don't know the connection name, call ``list_project_datasets`` on an existing project
+    and look at the ``connection`` fields to find a list of potential connection names.
 
     :param str project_key: The project key in which to create the dataset
     :param str dataset_name: The name for the new dataset
@@ -38,7 +38,9 @@ def create_managed_dataset(
     client = _get_impersonated_dss_client()
     project = client.get_project(project_key)
     builder = project.new_managed_dataset(dataset_name)
-    builder.with_store_into(connection, type_option_id=type_option_id, format_option_id=format_option_id)
+    builder.with_store_into(
+        connection, type_option_id=type_option_id, format_option_id=format_option_id
+    )
     builder.create(overwrite=overwrite)
     return {
         "success": True,
@@ -55,7 +57,9 @@ def create_managed_dataset(
 
 
 @mcp.tool
-def delete_dataset(project_key: str, dataset_name: str, drop_data: bool = False) -> dict:
+def delete_dataset(
+    project_key: str, dataset_name: str, drop_data: bool = False
+) -> dict:
     """
     Delete a dataset from a project.
 

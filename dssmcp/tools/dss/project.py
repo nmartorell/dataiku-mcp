@@ -300,9 +300,7 @@ def list_project_datasets(project_key: str, include_shared: bool = False) -> lis
     """
     client = _get_impersonated_dss_client()
     project = client.get_project(project_key)
-    datasets = project.list_datasets(
-        as_type="listitems", include_shared=include_shared
-    )
+    datasets = project.list_datasets(as_type="listitems", include_shared=include_shared)
 
     # remove unnecessary fields from project list that bloat LLM context window
     datasets_summary = []
@@ -310,6 +308,7 @@ def list_project_datasets(project_key: str, include_shared: bool = False) -> lis
         datasets_summary.append(
             {
                 "type": ds.get("type", ""),
+                "connection": ds.get("params", {}).get("connection", None),
                 "managed": ds["managed"],
                 "name": ds.get("name", ""),
                 "smartName": ds.get("smartName", ""),
