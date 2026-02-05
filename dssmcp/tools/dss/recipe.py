@@ -46,7 +46,6 @@ CODE_RECIPE_TYPES = {
     "streaming_spark_scala",
 }
 
-# Scoring/evaluation types (special input roles)
 SCORING_TYPES = {
     "prediction_scoring",
     "clustering_scoring",
@@ -55,7 +54,6 @@ SCORING_TYPES = {
     "nlp_llm_evaluation",
 }
 
-# Other special types
 OTHER_TYPES = {
     "extract_failed_rows",
     "nlp_llm_rag_embedding",
@@ -63,7 +61,14 @@ OTHER_TYPES = {
     "embed_documents",
 }
 
-# Aggregate (by number of inputs and output)
+# Aggregate types (by number of inputs and output)
+SINGLE_INPUT_TYPES = (
+    SINGLE_INPUT_SINGLE_OUTPUT_TYPES
+    | SINGLE_INPUT_MULTI_OUTPUT_TYPES
+    | SCORING_TYPES
+    | OTHER_TYPES
+)
+
 SINGLE_OUTPUT_TYPES = (
     SINGLE_INPUT_SINGLE_OUTPUT_TYPES
     | MULTI_INPUT_SINGLE_OUTPUT_TYPES
@@ -99,59 +104,54 @@ def create_recipe(
 ) -> dict:
     """
     Create a new recipe in a project's flow with specified inputs and outputs.
+    Inputs and outputs must exist prior to creating the recipe.
 
     Valid recipe types:
 
     - **Single-input visual** (exactly 1 input, 1 output): sync, csync, sort, topn, distinct,
       prepare, shaker, sampling, grouping, window, pivot, download, export, upsert
+    - **Multi-output visual** (1 input, 1+ output): split
     - **Multi-input visual** (1+ inputs, 1 output): join, vstack, generate_features, sql_query
     - **Code** (any number of inputs/outputs): python, r, sql_script, pyspark, sparkr,
       spark_scala, shell, spark_sql_query, cpython, ksql, streaming_spark_scala
-    - **Scoring/evaluation** (1 output): prediction_scoring, clustering_scoring, evaluation,
+    - **Scoring/evaluation** (1 input, 1 output): prediction_scoring, clustering_scoring, evaluation,
       standalone_evaluation, nlp_llm_evaluation
-    - **Other** (1 output): extract_failed_rows, nlp_llm_rag_embedding, embed_dataset, embed_documents
-    - **Split** (1 input, multiple outputs): split
+    - **Other** (1 input, 1 output): extract_failed_rows, nlp_llm_rag_embedding, embed_dataset, embed_documents
 
     :param str project_key: The project key in which to create the recipe
     :param str recipe_type: The type of recipe to create (see list above)
     :param list inputs: List of input dataset names (strings)
     :param list outputs: List of output specifications. Each element is a dict with:
         - ``name`` (required): the output dataset name
-        - ``connection`` (optional): if provided, creates a new managed dataset on this connection;
-          if omitted, the output dataset must already exist
         - ``append`` (optional, default False): whether to append instead of overwrite
     :param str recipe_name: Optional custom recipe name (auto-generated if None)
     :param str code: Optional initial script code (only valid for code recipe types)
     :returns: A dict with the created recipe's name, type, inputs, and outputs
     :rtype: dict
     """
+    # Validate if datasets already exist in the flow
+    # TODO (by Claude).
+
     # Validate recipe type
     if recipe_type not in ALL_RECIPE_TYPES:
         return {
             "error": f"Invalid recipe_type '{recipe_type}'. Must be one of: {sorted(ALL_RECIPE_TYPES)}"
         }
 
-    # Validate input counts
-    if recipe_type in SINGLE_INPUT_TYPES and len(inputs) != 1:
-        return {
-            "error": f"Recipe type '{recipe_type}' requires exactly 1 input, got {len(inputs)}"
-        }
-    if recipe_type in SPLIT_TYPES and len(inputs) != 1:
-        return {
-            "error": f"Recipe type '{recipe_type}' requires exactly 1 input, got {len(inputs)}"
-        }
-    if recipe_type in MULTI_INPUT_SINGLE_OUTPUT_TYPES and len(inputs) < 1:
-        return {
-            "error": f"Recipe type '{recipe_type}' requires at least 1 input, got {len(inputs)}"
-        }
+    # Validate input and output counts
+    if len(inputs) < 1:
+        return {"error": f"Recipes requires at least 1 input, got {len(inputs)}"}
+    elif len(outputs) < 1:
+        return {"error": f"Recipes requires at least 1 output, got {len(outputs)}"}
 
-    # Validate output counts
-    if recipe_type in SINGLE_OUTPUT_TYPES and len(outputs) != 1:
+    if recipe_type in SINGLE_INPUT_TYPES and len(inputs) > 1:
+        return {
+            "error": f"Recipe type '{recipe_type}' requires exactly 1 input, got {len(inputs)}"
+        }
+    if recipe_type in SINGLE_OUTPUT_TYPES and len(outputs) > 1:
         return {
             "error": f"Recipe type '{recipe_type}' requires exactly 1 output, got {len(outputs)}"
         }
-    if len(outputs) < 1:
-        return {"error": "All recipes require at least 1 output"}
 
     # Validate code param
     if code is not None and recipe_type not in CODE_RECIPE_TYPES:
@@ -167,41 +167,14 @@ def create_recipe(
     for inp in inputs:
         builder.with_input(inp)
 
-    # Add outputs based on recipe category
-    if recipe_type in CODE_RECIPE_TYPES:
-        for out_spec in outputs:
-            name = out_spec["name"]
-            connection = out_spec.get("connection")
-            append = out_spec.get("append", False)
-            if connection:
-                builder.with_new_output_dataset(name, connection)
-            else:
-                builder.with_output(name, append=append)
-        if code:
-            builder.with_script(code)
+    for out in outputs:
+        name = out["name"]
+        append = out.get("append", False)
+        builder.with_output(name, append=append)
 
-    elif recipe_type in SPLIT_TYPES:
-        # Split uses base DSSRecipeCreator; create new datasets manually if needed
-        for out_spec in outputs:
-            name = out_spec["name"]
-            connection = out_spec.get("connection")
-            append = out_spec.get("append", False)
-            if connection:
-                ds_builder = project.new_managed_dataset(name)
-                ds_builder.with_store_into(connection)
-                ds_builder.create()
-            builder.with_output(name, append=append)
-
-    else:
-        # SingleOutput recipes (visual): exactly 1 output
-        out_spec = outputs[0]
-        name = out_spec["name"]
-        connection = out_spec.get("connection")
-        append = out_spec.get("append", False)
-        if connection:
-            builder.with_new_output(name, connection)
-        else:
-            builder.with_existing_output(name, append=append)
+    # Add code for code recipes
+    if recipe_type in CODE_RECIPE_TYPES and code:
+        builder.with_script(code)
 
     recipe = builder.create()
     return {
