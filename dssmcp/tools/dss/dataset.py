@@ -112,3 +112,68 @@ def get_dataset_metadata(project_key: str, dataset_name: str) -> dict:
     project = client.get_project(project_key)
     dataset = project.get_dataset(dataset_name)
     return dataset.get_metadata()
+
+
+########################################################
+# Dataset Data
+########################################################
+
+MAX_SAMPLE_ROWS = 1000
+DEFAULT_SAMPLE_ROWS = 50
+
+
+@mcp.tool
+def get_dataset_sample(
+    project_key: str,
+    dataset_name: str,
+    num_rows: int = DEFAULT_SAMPLE_ROWS,
+    partitions: str = None,
+) -> dict:
+    """
+    Get sample data from a dataset.
+
+    Returns rows from the dataset as a list of dicts, where each dict maps column names to values.
+
+    :param str project_key: The project key containing the dataset
+    :param str dataset_name: The name of the dataset
+    :param int num_rows: Number of rows to retrieve (default 50, max 1000)
+    :param str partitions: Optional partition identifier or comma-separated list of partitions to include
+    :returns: A dict containing the schema columns and sample rows
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    dataset = project.get_dataset(dataset_name)
+
+    # Enforce row limits
+    if num_rows > MAX_SAMPLE_ROWS:
+        num_rows = MAX_SAMPLE_ROWS
+    if num_rows < 1:
+        num_rows = 1
+
+    # Get schema to map column names
+    schema = dataset.get_schema()
+    column_names = [col["name"] for col in schema.get("columns", [])]
+
+    # Parse partitions if provided as comma-separated string
+    partition_list = None
+    if partitions:
+        partition_list = [p.strip() for p in partitions.split(",")]
+
+    # Iterate rows and collect sample
+    rows = []
+    for row_values in dataset.iter_rows(partitions=partition_list):
+        # Convert list of values to dict with column names
+        row_dict = dict(zip(column_names, row_values))
+        rows.append(row_dict)
+        if len(rows) >= num_rows:
+            break
+
+    return {
+        "project_key": project_key,
+        "dataset_name": dataset_name,
+        "num_rows_requested": num_rows,
+        "num_rows_returned": len(rows),
+        "columns": column_names,
+        "rows": rows,
+    }
