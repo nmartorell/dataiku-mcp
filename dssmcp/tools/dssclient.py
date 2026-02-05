@@ -55,6 +55,8 @@ def create_project(
     Create a new project in Dataiku DSS.
 
     Note: this call requires an API key with admin rights or the right to create a project.
+    If the "project_folder_id" is not provided, then this call also requires an API key with rights
+    to "write in root folder" (the error message will be a generic "action forbidden") in this case.
 
     :param str project_name: The display name for the project (required)
     :param str owner: The login of the owner of the project. If not provided, defaults to the current user.
