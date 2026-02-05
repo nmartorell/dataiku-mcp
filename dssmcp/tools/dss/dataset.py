@@ -2,6 +2,54 @@ from ...server import mcp
 from ...utils import _get_impersonated_dss_client
 
 ########################################################
+# Dataset Creation
+########################################################
+
+
+@mcp.tool
+def create_managed_dataset(
+    project_key: str,
+    dataset_name: str,
+    connection: str,
+    format_option_id: str = None,
+    type_option_id: str = None,
+    overwrite: bool = False,
+) -> dict:
+    """
+    Create a new managed dataset in a project.
+
+    A managed dataset is one whose data lifecycle is handled by DSS (as opposed to external
+    datasets that point to pre-existing data).
+
+    If you don't know the connection name, call ``get_dataset_settings`` on an existing dataset
+    in the project and look at the ``params.connection`` field to find a valid connection name.
+
+    :param str project_key: The project key in which to create the dataset
+    :param str dataset_name: The name for the new dataset
+    :param str connection: The connection name to store the dataset on (e.g. "filesystem_managed")
+    :param str format_option_id: Optional format preset (e.g. "PARQUET", "CSV_EXCEL_GZIP").
+        If not provided, the connection's default format is used.
+    :param str type_option_id: Optional sub-type of the dataset.
+        If not provided, the connection's default type is used.
+    :param bool overwrite: If True, overwrite if a dataset with this name already exists (defaults to False)
+    :returns: A dict confirming the creation with dataset name and project key
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    project = client.get_project(project_key)
+    builder = project.new_managed_dataset(dataset_name)
+    builder.with_store_into(connection, type_option_id=type_option_id, format_option_id=format_option_id)
+    builder.create(overwrite=overwrite)
+    return {
+        "success": True,
+        "project_key": project_key,
+        "dataset_name": dataset_name,
+        "connection": connection,
+        "message": f"Managed dataset '{dataset_name}' created successfully on connection '{connection}'",
+    }
+
+
+########################################################
 # Dataset Lifecycle
 ########################################################
 
