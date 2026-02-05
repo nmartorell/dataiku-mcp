@@ -115,7 +115,8 @@ def create_recipe(
     Valid recipe types:
 
     - **Single-input visual** (exactly 1 input, 1 output): sync, csync, sort, topn, distinct,
-      prepare, shaker, sampling, grouping, window, pivot, download, export, upsert
+      prepare, shaker, sampling (which users might also call a filter recipe), grouping, window,
+      pivot, download, export, upsert
     - **Multi-output visual** (1 input, 1+ output): split
     - **Multi-input visual** (1+ inputs, 1 output): join, vstack, generate_features, sql_query
     - **Code** (any number of inputs/outputs): python, r, sql_script, pyspark, sparkr,
