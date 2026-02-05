@@ -1,3 +1,5 @@
+from dataiku.runnables import utils
+
 from dataikuapi.utils import DataikuException
 
 from ..server import mcp
@@ -18,6 +20,84 @@ def list_project_keys_and_names() -> list:
     """
     client = _get_impersonated_dss_client()
     return [{p["name"]: p["projectKey"]} for p in client.list_projects()]
+
+
+def _generate_project_key(project_name: str) -> str:
+    """
+    Generate a project key from a project name.
+
+    Converts letters to uppercase, keeps numbers, replaces all other characters with underscores.
+
+    :param str project_name: The project name to convert
+    :returns: A valid project key
+    :rtype: str
+    """
+    result = []
+    for char in project_name:
+        if char.isalpha():
+            result.append(char.upper())
+        elif char.isdigit():
+            result.append(char)
+        else:
+            result.append("_")
+    return "".join(result)
+
+
+@mcp.tool
+def create_project(
+    project_name: str,
+    owner: str = None,
+    description: str = None,
+    project_key: str = None,
+    project_folder_id: str = None,
+) -> dict:
+    """
+    Create a new project in Dataiku DSS.
+
+    Note: this call requires an API key with admin rights or the right to create a project.
+
+    :param str project_name: The display name for the project (required)
+    :param str owner: The login of the owner of the project. If not provided, defaults to the current user.
+    :param str description: A description for the project.
+    :param str project_key: The unique identifier for the project. If not provided, it is auto-generated
+        from the project name (letters uppercase, numbers unchanged, other chars replaced with underscores).
+    :param str project_folder_id: The project folder ID in which the project will be created
+        (root project folder if not specified).
+
+    :returns: A dict with the created project's key and name.
+    :rtype: dict
+
+    .. note::
+        If the creation fails because the project_key already exists, re-call this tool with a modified
+        project_key by appending "_X" where X is a number starting with 1 (e.g., "MY_PROJECT_1").
+        If that also fails, increment X (e.g., "MY_PROJECT_2") and try again.
+    """
+    client = _get_impersonated_dss_client()
+
+    # Generate project key from name if not provided
+    if project_key is None:
+        project_key = _generate_project_key(project_name)
+
+    # Get current user as owner if not provided
+    if owner is None:
+        auth_info = client.get_auth_info(with_secrets=False)
+        owner = auth_info.get("authIdentifier")
+
+    # Create the project
+    project = client.create_project(
+        project_key=project_key,
+        name=project_name,
+        owner=owner,
+        description=description,
+        project_folder_id=project_folder_id,
+    )
+
+    return {
+        "projectKey": project.project_key,
+        "name": project_name,
+        "owner": owner,
+        "message": f"Project '{project_name}' created successfully with key '{project.project_key}'",
+    }
 
 
 @mcp.tool
