@@ -1,5 +1,3 @@
-from dataiku.runnables import utils
-
 from dataikuapi.utils import DataikuException
 
 from ..server import mcp
@@ -11,15 +9,40 @@ from ..utils import _get_impersonated_dss_client
 
 
 @mcp.tool
-def list_project_keys_and_names() -> list:
+def list_projects(
+    include_location: bool = False, include_description: bool = False
+) -> list:
     """
-    List the project keys (=project identifiers) and names.
+    List the projects.
 
-    :returns: list of dicts mapping project names to project keys
+    :param bool include_location: whether to include project locations (slower)
+    :param bool include_description: whether to include project descirptions (a lot more tokens, don't
+                                     include unless required)
+    :returns: a list of projects, each as a dict. Each dict contains at least a 'projectKey' field
     :rtype: list of dicts
     """
     client = _get_impersonated_dss_client()
-    return [{p["name"]: p["projectKey"]} for p in client.list_projects()]
+    project_list = client.list_projects(include_location=include_location)
+
+    # remove unnecessary fields from project list that bloat LLM context window
+    project_list_summary = []
+    for p in project_list:
+        p_summary = {
+            "name": p.get("name", ""),
+            "projectKey": p["projectKey"],
+            "ownerDisplayName": p.get("ownerDisplayName", ""),
+            "ownerLogin": p.get("ownerLogin", ""),
+            "tutorialProject": p.get("tutorialProject", ""),
+            "tags": p.get("tags", []),
+        }
+        if include_description:
+            p_summary["description"] = p.get("description", [])
+        if include_location:
+            p_summary["projectLocation"] = p.get("projectLocation", [])
+
+        project_list_summary.append(p_summary)
+
+    return project_list_summary
 
 
 def _generate_project_key(project_name: str) -> str:
@@ -100,43 +123,6 @@ def create_project(
         "owner": owner,
         "message": f"Project '{project_name}' created successfully with key '{project.project_key}'",
     }
-
-
-@mcp.tool
-def list_projects(
-    include_location: bool = False, include_description: bool = False
-) -> list:
-    """
-    List the projects
-
-    :param bool include_location: whether to include project locations (slower)
-    :param bool include_description: whether to include project descirptions (a lot more tokens, don't
-                                     include unless required)
-    :returns: a list of projects, each as a dict. Each dict contains at least a 'projectKey' field
-    :rtype: list of dicts
-    """
-    client = _get_impersonated_dss_client()
-    project_list = client.list_projects(include_location=include_location)
-
-    # remove unnecessary fields from project list that bloat LLM context window
-    project_list_summary = []
-    for p in project_list:
-        p_summary = {
-            "name": p.get("name", ""),
-            "projectKey": p["projectKey"],
-            "ownerDisplayName": p.get("ownerDisplayName", ""),
-            "ownerLogin": p.get("ownerLogin", ""),
-            "tutorialProject": p.get("tutorialProject", ""),
-            "tags": p.get("tags", []),
-        }
-        if include_description:
-            p_summary["description"] = p.get("description", [])
-        if include_location:
-            p_summary["projectLocation"] = p.get("projectLocation", [])
-
-        project_list_summary.append(p_summary)
-
-    return project_list_summary
 
 
 ########################################################
@@ -568,7 +554,9 @@ def get_general_settings(settings_keys: list = None) -> dict:
         settings_keys = ALLOWED_GENERAL_SETTINGS_KEYS
 
     # Validate requested keys
-    invalid_keys = [key for key in settings_keys if key not in ALLOWED_GENERAL_SETTINGS_KEYS]
+    invalid_keys = [
+        key for key in settings_keys if key not in ALLOWED_GENERAL_SETTINGS_KEYS
+    ]
     if invalid_keys:
         return {
             "error": f"Invalid settings keys: {invalid_keys}. Allowed keys are: {ALLOWED_GENERAL_SETTINGS_KEYS}"
@@ -599,7 +587,9 @@ def set_general_settings(settings: dict) -> dict:
     client = _get_impersonated_dss_client()
 
     # Validate that only allowed keys are being set
-    invalid_keys = [key for key in settings.keys() if key not in ALLOWED_GENERAL_SETTINGS_KEYS]
+    invalid_keys = [
+        key for key in settings.keys() if key not in ALLOWED_GENERAL_SETTINGS_KEYS
+    ]
     if invalid_keys:
         return {
             "error": f"Invalid settings keys: {invalid_keys}. Allowed keys are: {ALLOWED_GENERAL_SETTINGS_KEYS}"
