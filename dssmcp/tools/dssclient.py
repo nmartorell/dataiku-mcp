@@ -526,3 +526,96 @@ def get_data_quality_status() -> dict:
     """
     client = _get_impersonated_dss_client()
     return client.get_data_quality_status()
+
+
+########################################################
+# General Settings
+########################################################
+
+# Allowed settings keys that can be retrieved or modified
+ALLOWED_GENERAL_SETTINGS_KEYS = [
+    "sparkSettings",
+    "containerSettings",
+    "defaultK8sClusterId",
+    "security",
+    "cgroupSettings",
+    "maxRunningActivitiesPerJob",
+    "maxRunningActivities",
+    "maxRunningActivitiesPerKey",
+]
+
+
+@mcp.tool
+def get_general_settings(settings_keys: list = None) -> dict:
+    """
+    Get the general settings of the DSS instance.
+
+    Note: this call requires an API key with admin rights.
+
+    :param list settings_keys: A list of settings keys to retrieve. If not provided, all allowed settings
+        are returned. Allowed keys are: sparkSettings, containerSettings, defaultK8sClusterId, security,
+        cgroupSettings, maxRunningActivitiesPerJob, maxRunningActivities, maxRunningActivitiesPerKey.
+
+    :returns: A dict containing the requested settings.
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+    general_settings = client.get_general_settings()
+    all_settings = general_settings.get_raw()
+
+    # If no keys specified, return all allowed settings
+    if settings_keys is None:
+        settings_keys = ALLOWED_GENERAL_SETTINGS_KEYS
+
+    # Validate requested keys
+    invalid_keys = [key for key in settings_keys if key not in ALLOWED_GENERAL_SETTINGS_KEYS]
+    if invalid_keys:
+        return {
+            "error": f"Invalid settings keys: {invalid_keys}. Allowed keys are: {ALLOWED_GENERAL_SETTINGS_KEYS}"
+        }
+
+    # Return only the requested settings
+    return {key: all_settings.get(key) for key in settings_keys if key in all_settings}
+
+
+@mcp.tool
+def set_general_settings(settings: dict) -> dict:
+    """
+    Set the general settings of the DSS instance.
+
+    Note: this call requires an API key with admin rights.
+
+    Usage: First call get_general_settings to retrieve current settings for the keys you want to modify,
+    make your changes to the returned dict, then pass the updated dict to this function.
+
+    :param dict settings: A dict containing the settings to update. Only the following keys are allowed:
+        sparkSettings, containerSettings, defaultK8sClusterId, security, cgroupSettings,
+        maxRunningActivitiesPerJob, maxRunningActivities, maxRunningActivitiesPerKey.
+        Only the keys present in this dict will be updated; other settings remain unchanged.
+
+    :returns: A dict confirming the update with the keys that were modified.
+    :rtype: dict
+    """
+    client = _get_impersonated_dss_client()
+
+    # Validate that only allowed keys are being set
+    invalid_keys = [key for key in settings.keys() if key not in ALLOWED_GENERAL_SETTINGS_KEYS]
+    if invalid_keys:
+        return {
+            "error": f"Invalid settings keys: {invalid_keys}. Allowed keys are: {ALLOWED_GENERAL_SETTINGS_KEYS}"
+        }
+
+    # Get current settings
+    general_settings = client.get_general_settings()
+
+    # Update only the provided keys
+    for key, value in settings.items():
+        general_settings.settings[key] = value
+
+    # Save the settings
+    general_settings.save()
+
+    return {
+        "message": "General settings updated successfully",
+        "updatedKeys": list(settings.keys()),
+    }
